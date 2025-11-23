@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import FormCard from '../components/FormCard';
+import Swal from 'sweetalert2';
 
 const NAME_REGEX = /^[A-Za-záàâãéèêíïóôõöúçñÁÀÂÃÉÈÍÏÓÔÕÖÚÇÑ\s]+$/;
 const PHONE_REGEX = /^\d*$/;
 
 // Converte "2005-11-16" -> "16/11/2005"
-function formatarDataBR(dataISO) {
+function formatarDataParaBR(dataISO) {
   const [ano, mes, dia] = dataISO.split("-");
   return `${dia}/${mes}/${ano}`;
 }
 
 export default function Register() {
-  const [mensagem, setMensagem] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
 
   const [nome, setNome] = useState('');
   const [dataNascimento, setDataNascimento] = useState('');
@@ -22,136 +22,103 @@ export default function Register() {
   const [senha, setSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
 
-  const navigate = useNavigate();
-
-  const handleNameChange = (event) => {
-    const value = event.target.value;
-    if (value === '' || NAME_REGEX.test(value)) {
-      setNome(value);
-    }
-  };
-
-  const handlePhoneChange = (event) => {
-    const value = event.target.value;
-    if (value === '' || PHONE_REGEX.test(value)) {
-      setTelefone(value);
-    }
-  };
-
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setMensagem('');
 
     // -------- VALIDAÇÕES --------
-    if (!nome.trim() || !dataNascimento || !email.trim() || !telefone.trim() || !senha || !confirmarSenha) {
-      setMensagem('⚠️ Por favor, preencha todos os campos obrigatórios.');
+    if (!nome || !dataNascimento || !email || !telefone || !senha || !confirmarSenha) {
+      Swal.fire('Erro', 'Preencha todos os campos obrigatórios!', 'error');
       return;
     }
 
     if (!NAME_REGEX.test(nome.trim())) {
-      setMensagem('⚠️ O nome completo deve conter apenas letras e espaços.');
+      Swal.fire('Erro', 'O nome deve conter apenas letras e espaços.', 'error');
       return;
     }
 
     const numeroLimpo = telefone.replace(/\D/g, '');
-    if (numeroLimpo.length < 10) {
-      setMensagem('⚠️ O telefone deve ter no mínimo 10 dígitos.');
+    if (numeroLimpo.length < 10 || numeroLimpo.length > 11) {
+      Swal.fire('Erro', 'O telefone deve ter 10 ou 11 dígitos.', 'error');
       return;
     }
 
-    // -------- NOVA VALIDAÇÃO DE SENHA --------
     if (senha.length < 6) {
-      setMensagem('⚠️ A senha deve ter no mínimo 6 caracteres.');
+      Swal.fire('Erro', 'A senha deve ter no mínimo 6 caracteres.', 'error');
       return;
     }
 
     if (senha !== confirmarSenha) {
-      setMensagem('⚠️ As senhas digitadas não são iguais.');
+      Swal.fire('Erro', 'As senhas não coincidem!', 'error');
       return;
     }
 
-    setIsSubmitting(true);
-
     try {
+      // ------- JSON QUE A API EXIGE -------
       const payload = {
         nome: nome.trim(),
-        dataNascimento: formatarDataBR(dataNascimento),
+        dataNascimento: formatarDataParaBR(dataNascimento),
         telefone: numeroLimpo,
         email: email.trim(),
-        senha,
+        senha: senha
       };
 
-      const formBody = new URLSearchParams(payload).toString();
+      const response = await fetch(
+        'https://projeto-integrador-fixhub.onrender.com/api/fixhub/register',
+        {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(payload),
+        }
+      );
 
-      const response = await fetch("https://projeto-integrador-fixhub.onrender.com/api/fixhub/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          "Accept": "application/json"
-        },
-        body: formBody
-      });
-
-      const responseData = await response.json().catch(() => null);
+      const data = await response.json().catch(() => null);
 
       if (!response.ok) {
-        setMensagem(`❌ Erro: ${responseData?.message || "Falha ao cadastrar usuário."}`);
+        Swal.fire('Erro', data?.message || 'Falha ao cadastrar usuário.', 'error');
         return;
       }
 
-      // SUCESSO
-      setMensagem(
-        responseData?.message
-          ? `🎉 ${responseData.message} Redirecionando...`
-          : "🎉 Usuário cadastrado com sucesso! Redirecionando..."
-      );
-
-      setTimeout(() => navigate("/"), 2000);
+      Swal.fire('Sucesso!', data?.message || 'Usuário cadastrado com sucesso!', 'success')
+        .then(() => navigate('/'));
 
     } catch (error) {
-      console.error("Erro ao conectar à API:", error);
-      setMensagem("❌ Erro ao conectar ao servidor. Tente novamente.");
-    } finally {
-      setIsSubmitting(false);
+      console.error('Erro no cadastro:', error);
+      Swal.fire('Erro', 'Falha ao conectar ao servidor.', 'error');
     }
   };
 
   return (
-    <div className="py-6">
-      <FormCard title="Tela Cadastro">
-        <div className="text-center">
-          <img src="/logo_fixhub.png" className="mx-auto w-24" alt="logo" />
+    <div className="flex justify-center py-10 px-4">
+      <div className="w-full max-w-lg bg-white/90 backdrop-blur-md shadow-xl rounded-xl p-8 border border-slate-200">
+
+        {/* logo */}
+        <div className="text-center mb-4">
+          <img src="/logo_fixhub.png" className="mx-auto w-20" alt="logo" />
+          <h1 className="text-2xl font-semibold mt-2 text-slate-700">
+            Criar Conta
+          </h1>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-2">
-
-          {mensagem && (
-            <div
-              className={`text-sm p-3 rounded-lg font-medium text-center ${
-                mensagem.startsWith('🎉')
-                  ? 'bg-green-100 text-green-700'
-                  : 'bg-red-100 text-red-700'
-              }`}
-            >
-              {mensagem}
-            </div>
-          )}
+        <form onSubmit={handleSubmit} className="space-y-4">
 
           <div>
-            <label className="label">Nome completo</label>
+            <label className="text-sm font-medium text-slate-700">Nome completo</label>
             <input
-              className="input"
-              placeholder="Nome completo"
+              className="input bg-white border border-slate-300 rounded-lg w-full p-2 mt-1 focus:ring-2 focus:ring-blue-400"
+              placeholder="Seu nome"
               value={nome}
-              onChange={handleNameChange}
+              onChange={(e) => setNome(e.target.value)}
               maxLength={100}
             />
           </div>
 
           <div>
-            <label className="label">Data nascimento</label>
+            <label className="text-sm font-medium text-slate-700">Data de nascimento</label>
             <input
-              className="input"
+              className="input bg-white border border-slate-300 rounded-lg w-full p-2 mt-1 focus:ring-2 focus:ring-blue-400"
               type="date"
               value={dataNascimento}
               onChange={(e) => setDataNascimento(e.target.value)}
@@ -159,66 +126,70 @@ export default function Register() {
           </div>
 
           <div>
-            <label className="label">E-mail</label>
+            <label className="text-sm font-medium text-slate-700">E-mail</label>
             <input
-              className="input"
-              placeholder="seu@email.com"
+              className="input bg-white border border-slate-300 rounded-lg w-full p-2 mt-1 focus:ring-2 focus:ring-blue-400"
+              type="email"
+              placeholder="email@exemplo.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              type="email"
             />
           </div>
 
           <div>
-            <label className="label">Telefone</label>
+            <label className="text-sm font-medium text-slate-700">Telefone</label>
             <input
-              className="input"
-              placeholder="(99) 99999-9999"
+              className="input bg-white border border-slate-300 rounded-lg w-full p-2 mt-1 focus:ring-2 focus:ring-blue-400"
+              placeholder="11999999999"
               value={telefone}
-              onChange={handlePhoneChange}
-              type="tel"
-              inputMode="numeric"
-              maxLength={15}
+              onChange={(e) => setTelefone(e.target.value)}
+              maxLength={11}
             />
           </div>
 
-          <div>
-            <label className="label">Senha</label>
-            <input
-              className="input"
-              placeholder="Senha"
-              type="password"
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-slate-700">Senha</label>
+              <input
+                className="input bg-white border border-slate-300 rounded-lg w-full p-2 mt-1 focus:ring-2 focus:ring-blue-400"
+                type="password"
+                placeholder="Senha"
+                value={senha}
+                onChange={(e) => setSenha(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-slate-700">Confirmar senha</label>
+              <input
+                className="input bg-white border border-slate-300 rounded-lg w-full p-2 mt-1 focus:ring-2 focus:ring-blue-400"
+                type="password"
+                placeholder="Confirmar"
+                value={confirmarSenha}
+                onChange={(e) => setConfirmarSenha(e.target.value)}
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="label">Confirmar senha</label>
-            <input
-              className="input"
-              placeholder="Confirmar senha"
-              type="password"
-              value={confirmarSenha}
-              onChange={(e) => setConfirmarSenha(e.target.value)}
-            />
-          </div>
-
-          <div className="flex justify-between items-center mt-2">
+          <div className="flex justify-between items-center mt-4">
             <button
-              className="text-sm text-slate-600 hover:underline"
               type="button"
+              className="text-sm text-slate-600 hover:underline"
               onClick={() => navigate(-1)}
             >
               Voltar
             </button>
 
-            <button className="btn-primary" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Cadastrando...' : 'Cadastrar'}
+            <button
+              type="submit"
+              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow transition"
+            >
+              Cadastrar
             </button>
           </div>
+
         </form>
-      </FormCard>
+      </div>
     </div>
   );
 }

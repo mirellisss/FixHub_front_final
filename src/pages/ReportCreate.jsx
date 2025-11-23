@@ -1,188 +1,209 @@
-import React, { useState } from 'react';
-import FormCard from '../components/FormCard';
-import { useNavigate } from 'react-router-dom';
-import Swal from 'sweetalert2';
+import React, { useState, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import Swal from 'sweetalert2'
 
-export default function ReportCreate() {
-  const navigate = useNavigate();
+export default function ReportEdit() {
+  const { id } = useParams()
+  const navigate = useNavigate()
 
-  const [selectedLocation, setSelectedLocation] = useState("");
-  const [selectedArea, setSelectedArea] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [otherCategory, setOtherCategory] = useState("");
-  const [description, setDescription] = useState("");
-  const [image, setImage] = useState(null);
-  const [preview, setPreview] = useState(null);
-  const [mensagem, setMensagem] = useState('');
+  const [form, setForm] = useState({
+    andar: '',
+    descricaoLocalizacao: '',
+    localizacao: '',
+    descricaoTicketUsuario: '',
+    imagem: ''
+  })
 
-  const locations = ["Térreo", "Primeiro andar"];
-  const areas = ["Área externa", "Área interna"];
-  const categories = [
-    "Área de Embarque/Desembarque",
-    "Banheiro Feminino",
-    "Banheiro Masculino",
-    "Bilheteria",
-    "Catraca",
-    "Elevador",
-    "Escada Rolante",
-    "Estacionamento",
-    "Praça de Alimentação",
-    "Outros"
-  ];
+  const [preview, setPreview] = useState(null)
+  const [loading, setLoading] = useState(false)
 
+  // Buscar ticket
+  useEffect(() => {
+    const load = async () => {
+      const token = localStorage.getItem("authToken")
+      if (!token) return Swal.fire("Erro", "Usuário não autenticado", "error")
+
+      setLoading(true)
+
+      try {
+        const res = await fetch(
+          `https://projeto-integrador-fixhub.onrender.com/api/fixhub/tickets/detalhes/${id}`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/json",
+            },
+          }
+        )
+
+        const text = await res.text()
+        let data = null
+        try {
+          data = text ? JSON.parse(text) : null
+        } catch {
+          console.error("Erro ao parsear JSON:", text)
+          throw new Error()
+        }
+
+        if (!res.ok) throw new Error()
+
+        setForm({
+          andar: data.andar || "",
+          descricaoLocalizacao: data.descricaoLocalizacao || "",
+          localizacao: data.localizacao || "",
+          descricaoTicketUsuario: data.descricaoTicketUsuario || "",
+          imagem: data.imagem || "",
+        })
+
+        setPreview(data.imagem || null)
+
+      } catch {
+        Swal.fire("Erro", "Não foi possível carregar esse ticket.", "error")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    load()
+  }, [id])
+
+  // Atualização dos inputs
+  const handleChange = (e) => {
+    const { name, value } = e.target
+    setForm((prev) => ({ ...prev, [name]: value }))
+  }
+
+  // Upload IGUAL ao ReportCreate
   const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    setImage(file);
-    setPreview(file ? URL.createObjectURL(file) : null);
-  };
+    const file = e.target.files[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setForm((prev) => ({ ...prev, imagem: reader.result }))
+        setPreview(URL.createObjectURL(file))
+      }
+      reader.readAsDataURL(file)
+    }
+  }
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setMensagem("");
+    e.preventDefault()
 
-    if (!selectedLocation) return setMensagem("⚠️ Selecione o Local.");
-    if (!selectedArea) return setMensagem("⚠️ Selecione a Área.");
-    if (!selectedCategory) return setMensagem("⚠️ Selecione a Categoria.");
-    if (selectedCategory === "Outros" && !otherCategory.trim())
-      return setMensagem("⚠️ Descreva a categoria 'Outros'.");
-    if (!description.trim())
-      return setMensagem("⚠️ A descrição do problema é obrigatória.");
-
-    const categoriaFinal = selectedCategory === "Outros" ? otherCategory : selectedCategory;
-
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      Swal.fire("Erro", "Usuário não autenticado.", "error");
-      return;
-    }
-
-    const reportData = {
-      idUsuario: 1,
-      andar: selectedLocation,
-      localizacao: categoriaFinal,
-      descricaoLocalizacao: selectedArea,
-      descricaoTicketUsuario: description,
-      imagem: image ? image.name : null
-    };
+    const token = localStorage.getItem("authToken")
+    if (!token) return Swal.fire("Erro", "Usuário não autenticado", "error")
 
     try {
-      const response = await fetch("https://projeto-integrador-fixhub.onrender.com/api/fixhub/tickets", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify(reportData)
-      });
+      const payload = {
+        andar: form.andar,
+        descricaoLocalizacao: form.descricaoLocalizacao,
+        localizacao: form.localizacao,
+        descricaoTicketUsuario: form.descricaoTicketUsuario,
+        imagem: form.imagem
+      }
 
-      if (!response.ok) throw new Error();
+      const res = await fetch(
+        `https://projeto-integrador-fixhub.onrender.com/api/fixhub/tickets/${id}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      )
 
-      Swal.fire("Sucesso!", "Report enviado com sucesso!", "success");
-      navigate("/reports");
+      if (!res.ok) throw new Error()
 
-    } catch (err) {
-      Swal.fire("Erro", "Não foi possível enviar o report.", "error");
+      Swal.fire("Sucesso!", "Ticket atualizado com sucesso!", "success")
+      navigate(`/reports/${id}`)
+
+    } catch {
+      Swal.fire("Erro", "Não foi possível editar o ticket.", "error")
     }
-  };
-
-  const renderSelect = (label, options, placeholder, value, onChange, disabled) => (
-    <div className="flex flex-col gap-1">
-      <label className="font-medium text-sm text-gray-700">
-        {label} <span className="text-red-500">*</span>
-      </label>
-
-      <div className="relative">
-        <select
-          className="w-full border rounded-xl p-3 bg-white appearance-none shadow-sm 
-                     focus:ring-2 focus:ring-blue-400 transition-all cursor-pointer"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          disabled={disabled}
-        >
-          <option value="" disabled>{placeholder}</option>
-          {options.map(opt => (
-            <option key={opt} value={opt}>{opt}</option>
-          ))}
-        </select>
-
-        <span className="absolute right-3 top-3 text-gray-400 pointer-events-none">
-          ▼
-        </span>
-      </div>
-    </div>
-  );
+  }
 
   return (
-    <div className="py-8">
-      <div className="max-w-xl mx-auto bg-white shadow-xl rounded-2xl border border-gray-200 overflow-hidden">
+    <div className="max-w-3xl mx-auto mt-10 bg-white rounded-2xl shadow-lg p-6">
 
-        {/* HEADER PREMIUM */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-500 text-white py-6 px-6">
-          <h2 className="text-xl font-semibold tracking-tight">Criar Report</h2>
-          <p className="text-blue-100 text-sm mt-1">Descreva o problema encontrado</p>
-        </div>
+      <h2 className="text-2xl font-bold text-sky-700 border-b pb-3">
+        Editar Ticket #{id}
+      </h2>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+      {loading ? (
+        <div className="py-6 text-center text-gray-500">Carregando...</div>
+      ) : (
+        <form onSubmit={handleSubmit} className="mt-6 space-y-5">
 
-          {/* MENSAGEM */}
-          {mensagem && (
-            <div className={`p-3 rounded-lg text-center font-medium text-sm
-              ${mensagem.startsWith("⚠️")
-                ? "bg-red-50 text-red-600"
-                : "bg-green-50 text-green-700"}`}>
-              {mensagem}
-            </div>
-          )}
-
-          {/* SELECTS */}
-          {renderSelect("Local", locations, "Selecione um local", selectedLocation, setSelectedLocation)}
-          {selectedLocation && renderSelect("Área", areas, "Selecione uma área", selectedArea, setSelectedArea)}
-          {selectedArea && renderSelect("Categoria", categories, "Selecione uma categoria", selectedCategory, setSelectedCategory)}
-
-          {/* OUTROS */}
-          {selectedCategory === "Outros" && (
-            <div>
-              <label className="font-medium text-sm">Descreva Outros *</label>
-              <input
-                type="text"
-                className="w-full border rounded-xl p-3 shadow-sm focus:ring-2 focus:ring-blue-400"
-                placeholder="Descreva a categoria"
-                value={otherCategory}
-                onChange={(e) => setOtherCategory(e.target.value)}
-              />
-            </div>
-          )}
-
-          {/* DESCRIÇÃO */}
+          {/* ANDAR */}
           <div>
-            <label className="font-medium text-sm">Descrição *</label>
-            <textarea
-              className="w-full border rounded-xl p-3 shadow-sm focus:ring-2 focus:ring-blue-400"
-              rows="4"
-              placeholder="Descreva o problema encontrado"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+            <label className="font-medium">Andar</label>
+            <input
+              type="text"
+              name="andar"
+              value={form.andar}
+              onChange={handleChange}
+              className="w-full p-3 border rounded-xl shadow-sm focus:ring-2 focus:ring-blue-400"
             />
           </div>
 
-          {/* IMAGEM */}
+          {/* ÁREA */}
+          <div>
+            <label className="font-medium">Área</label>
+            <input
+              type="text"
+              name="descricaoLocalizacao"
+              value={form.descricaoLocalizacao}
+              onChange={handleChange}
+              className="w-full p-3 border rounded-xl shadow-sm focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
+
+          {/* LOCAL */}
+          <div>
+            <label className="font-medium">Local</label>
+            <input
+              type="text"
+              name="localizacao"
+              value={form.localizacao}
+              onChange={handleChange}
+              className="w-full p-3 border rounded-xl shadow-sm focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
+
+          {/* DESCRIÇÃO */}
+          <div>
+            <label className="font-medium">Descrição *</label>
+            <textarea
+              name="descricaoTicketUsuario"
+              value={form.descricaoTicketUsuario}
+              onChange={handleChange}
+              rows="4"
+              className="w-full p-3 border rounded-xl shadow-sm focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
+
+          {/* UPLOAD IGUAL AO ReportCreate */}
           <div>
             <label className="font-medium text-sm">Adicionar Imagem (opcional)</label>
+
             <input
               type="file"
               accept="image/*"
-              className="mt-1 block w-full text-sm text-gray-600 file:py-2 file:px-4
-                         file:border-0 file:rounded-lg file:bg-blue-50 file:text-blue-600
-                         hover:file:bg-blue-100"
+              className="mt-1 block w-full text-sm text-gray-600 
+                         file:py-2 file:px-4 file:border-0 file:rounded-lg 
+                         file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
               onChange={handleImageChange}
             />
 
             {preview && (
               <div className="mt-3">
-                <p className="text-sm font-medium mb-1">Pré-visualização:</p>
+                <p className="text-sm font-medium">Pré-visualização:</p>
                 <img
                   src={preview}
-                  className="max-h-48 rounded-xl shadow-lg border border-gray-200 object-cover"
+                  className="max-h-48 rounded-xl shadow-lg border object-cover mt-1"
                   alt="preview"
                 />
               </div>
@@ -190,34 +211,25 @@ export default function ReportCreate() {
           </div>
 
           {/* BOTÕES */}
-          <div className="flex justify-end gap-3 pt-3">
+          <div className="flex justify-between pt-6">
             <button
-              type="reset"
-              className="px-4 py-2 rounded-xl border border-gray-300 text-gray-600 hover:bg-gray-100 transition"
-              onClick={() => {
-                setSelectedLocation("");
-                setSelectedArea("");
-                setSelectedCategory("");
-                setOtherCategory("");
-                setDescription("");
-                setImage(null);
-                setPreview(null);
-                setMensagem('');
-              }}
+              type="button"
+              onClick={() => navigate(`/reports/${id}`)}
+              className="px-4 py-2 rounded-xl border border-gray-300 text-gray-600 hover:bg-gray-100"
             >
-              Limpar
+              Cancelar
             </button>
 
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl bg-blue-600 text-white font-semibold shadow hover:bg-blue-700 transition"
+              className="px-5 py-2 rounded-xl bg-blue-600 text-white font-semibold shadow hover:bg-blue-700"
             >
-              Enviar Report
+              Salvar Alterações
             </button>
           </div>
 
         </form>
-      </div>
+      )}
     </div>
-  );
+  )
 }

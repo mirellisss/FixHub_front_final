@@ -17,12 +17,12 @@ export default function SlideMenu({open, onClose}){
         <Link to="/settings" onClick={onClose} className="slide-item flex items-center gap-2">
           <FaCog className="w-4 h-4"/> Configurações
         </Link>
-        <Link to="/settings/account" onClick={onClose} className="slide-item flex items-center gap-2">
+        {/* <Link to="/settings/account" onClick={onClose} className="slide-item flex items-center gap-2">
           <FaUser className="w-4 h-4"/> Minha Conta
         </Link>
         <Link to="/settings/security" onClick={onClose} className="slide-item flex items-center gap-2">
           <FaLock className="w-4 h-4"/> Segurança
-        </Link>
+        </Link> */}
 
         {/* Nova aba de Perguntas Frequentes */}
         <Link to="/faq" onClick={onClose} className="slide-item flex items-center gap-2">
