@@ -121,15 +121,15 @@ export default function ReportEdit() {
       navigate(`/reports/${id}`)
 
     } catch {
-      Swal.fire("Erro", "Não foi possível editar o ticket.", "error")
+      Swal.fire("Erro", "Não foi possível criar o ticket.", "error")
     }
   }
 
-  return (
+  return ( 
     <div className="max-w-3xl mx-auto mt-10 bg-white rounded-2xl shadow-lg p-6">
 
       <h2 className="text-2xl font-bold text-sky-700 border-b pb-3">
-        Editar Ticket #{id}
+        Criar Ticket
       </h2>
 
       {loading ? (
