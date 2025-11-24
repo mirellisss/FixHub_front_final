@@ -20,7 +20,7 @@ export default function Home() {
   });
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("username");
+    const storedUser = localStorage.getItem("userName");
 
     const token = localStorage.getItem("authToken");
     if (!token) return;
