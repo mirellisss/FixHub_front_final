@@ -1,9 +1,18 @@
-//import React from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { FiMenu } from 'react-icons/fi'
 import logo from "/logo_fixhub.png";
 
 export default function Navbar({ onMenu }) {
+  
+  const location = useLocation();
+
+  // Rotas onde a navbar NÃO deve aparecer
+  const hideOnRoutes = ["/login", "/register", "/forgot-password"];
+
+  if (hideOnRoutes.includes(location.pathname)) {
+    return null; // Esconde navbar nessas rotas
+  }
+
   return (
     <header className="w-full bg-white shadow-sm">
       <div className="max-w-4xl mx-auto flex items-center justify-between p-4">
