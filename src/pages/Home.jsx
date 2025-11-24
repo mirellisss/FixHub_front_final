@@ -20,7 +20,7 @@ export default function Home() {
   });
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("userName");
+    const storedUser = localStorage.getItem("username");
     if (storedUser) setUserName(storedUser);
 
     const token = localStorage.getItem("authToken");
@@ -54,7 +54,7 @@ export default function Home() {
         {/* Boas-vindas */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex items-center gap-4">
           <div className="w-12 h-12 rounded-full bg-[var(--primary)]/15 flex items-center justify-center">
-            <span className="text-[var(--primary)] font-semibold text-lg">{userName[0]}</span>
+            <span className="text-[var(--primary)] font-semibold text-lg">{username[0]}</span>
           </div>
 
           <div>
