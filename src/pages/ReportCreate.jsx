@@ -36,54 +36,69 @@ export default function ReportCreate() {
     setPreview(file ? URL.createObjectURL(file) : null);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setMensagem("");
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setMensagem("");
 
-    if (!selectedLocation) return setMensagem("⚠️ Selecione o Local.");
-    if (!selectedArea) return setMensagem("⚠️ Selecione a Área.");
-    if (!selectedCategory) return setMensagem("⚠️ Selecione a Categoria.");
-    if (selectedCategory === "Outros" && !otherCategory.trim())
-      return setMensagem("⚠️ Descreva a categoria 'Outros'.");
-    if (!description.trim())
-      return setMensagem("⚠️ A descrição do problema é obrigatória.");
+  if (!selectedLocation) return setMensagem("⚠️ Selecione o Local.");
+  if (!selectedArea) return setMensagem("⚠️ Selecione a Área.");
+  if (!selectedCategory) return setMensagem("⚠️ Selecione a Categoria.");
+  if (selectedCategory === "Outros" && !otherCategory.trim())
+    return setMensagem("⚠️ Descreva a categoria 'Outros'.");
+  if (!description.trim())
+    return setMensagem("⚠️ A descrição do problema é obrigatória.");
 
-    const categoriaFinal = selectedCategory === "Outros" ? otherCategory : selectedCategory;
+  const categoriaFinal =
+    selectedCategory === "Outros" ? otherCategory : selectedCategory;
 
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      Swal.fire("Erro", "Usuário não autenticado.", "error");
-      return;
-    }
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    Swal.fire("Erro", "Usuário não autenticado.", "error");
+    return;
+  }
 
-    const reportData = {
-      idUsuario: 1,
-      andar: selectedLocation,
-      localizacao: categoriaFinal,
-      descricaoLocalizacao: selectedArea,
-      descricaoTicketUsuario: description,
-      imagem: image ? image.name : null
-    };
+  // =============================
+  //   CRIANDO O FORM DATA
+  // =============================
+  const formData = new FormData();
+  formData.append("idUsuario", 1);
+  formData.append("andar", selectedLocation);
+  formData.append("localizacao", categoriaFinal);
+  formData.append("descricaoLocalizacao", selectedArea);
+  formData.append("descricaoTicketUsuario", description);
 
-    try {
-      const response = await fetch("https://projeto-integrador-fixhub.onrender.com/api/fixhub/tickets", {
+  if (image) {
+    formData.append("imagem", image);  // <-- AQUI VAI A IMAGEM REAL
+  }
+
+  try {
+    const response = await fetch(
+      "https://projeto-integrador-fixhub.onrender.com/api/fixhub/tickets",
+      {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
+          // ❗ Não colocar Content-Type aqui!
+          // O navegador define automaticamente o boundary do multipart.
         },
-        body: JSON.stringify(reportData)
-      });
+        body: formData,
+      }
+    );
 
-      if (!response.ok) throw new Error();
-
-      Swal.fire("Sucesso!", "Report enviado com sucesso!", "success");
-      navigate("/reports");
-
-    } catch (err) {
-      Swal.fire("Erro", "Não foi possível enviar o report.", "error");
+    if (!response.ok) {
+      const text = await response.text();
+      console.error("Erro API:", text);
+      throw new Error();
     }
-  };
+
+    Swal.fire("Sucesso!", "Report enviado com sucesso!", "success");
+    navigate("/reports");
+
+  } catch (err) {
+    Swal.fire("Erro", "Não foi possível enviar o report.", "error");
+  }
+};
+
 
   const renderSelect = (label, options, placeholder, value, onChange, disabled) => (
     <div className="flex flex-col gap-1">
