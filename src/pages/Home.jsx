@@ -21,6 +21,7 @@ export default function Home() {
 
   useEffect(() => {
     const storedUser = localStorage.getItem("userName");
+    if (storedUser) setUserName(storedUser);
 
     const token = localStorage.getItem("authToken");
     if (!token) return;
