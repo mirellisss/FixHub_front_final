@@ -36,6 +36,7 @@ export default function Login() {
 
       // Salva o token no localStorage
       localStorage.setItem('authToken', data.token)
+      localStorage.setItem('username', data.nome)
 
       Swal.fire('Sucesso', 'Login realizado com sucesso!', 'success')
         .then(() => {
