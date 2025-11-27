@@ -9,7 +9,7 @@ export default function Layout() {
   const location = useLocation()
 
   // Rotas onde o Navbar, SlideMenu e Footer não devem aparecer
-  const noNavbarRoutes = ['/login', '/register', '/forgot-password']
+  const noNavbarRoutes = ['/login', '/register', '/forgot-password', '/']
   const hideNavbar = noNavbarRoutes.includes(location.pathname)
 
   return (
