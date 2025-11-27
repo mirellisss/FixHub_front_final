@@ -1,4 +1,3 @@
-// ...existing code...
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Swal from 'sweetalert2'
@@ -15,6 +14,25 @@ export default function ReportEdit() {
     imagem: ''
   })
   const [loading, setLoading] = useState(false)
+
+  // 🔥 Função para corrigir o link do Firebase
+  function convertFirebaseUrl(url) {
+    if (!url) return ""
+
+    // Se já está no formato oficial, retorna como está
+    if (url.includes("firebasestorage.googleapis.com")) return url
+
+    const baseIncorrect = "https://storage.googleapis.com/fixhub-dc44c.firebasestorage.app/"
+
+    // Se URL vier no formato errado
+    if (url.startsWith(baseIncorrect)) {
+      const filePath = url.replace(baseIncorrect, "") // ex: tickets/abc.jpeg
+      const encodedPath = encodeURIComponent(filePath) // tickets%2Fabc.jpeg
+      return `https://firebasestorage.googleapis.com/v0/b/fixhub-dc44c.firebasestorage.app/o/${encodedPath}?alt=media`
+    }
+
+    return url
+  }
 
   useEffect(() => {
     const fetchTicket = async () => {
@@ -50,15 +68,20 @@ export default function ReportEdit() {
           throw new Error(`Erro: ${res.status}`)
         }
 
-        // Mapear campos retornados para o formulário (tolerante a nomes diferentes)
+        // 🔥 Corrigindo link de imagem aqui
+        const img = convertFirebaseUrl(data.imagem || data.imagemBase64 || '')
+
         setForm({
           andar: data.andar || data.floor || '',
           descricaoLocalizacao:
             data.descricaoLocalizacao || data.area || data.tipo || '',
           localizacao: data.localizacao || data.local || '',
           descricaoTicketUsuario:
-            data.descricaoTicketUsuario || data.descricao || data.description || '',
-          imagem: data.imagem || data.imagemBase64 || ''
+            data.descricaoTicketUsuario ||
+            data.descricao ||
+            data.description ||
+            '',
+          imagem: img
         })
       } catch (error) {
         console.error('Erro ao carregar ticket:', error)
@@ -100,7 +123,7 @@ export default function ReportEdit() {
         descricaoLocalizacao: form.descricaoLocalizacao,
         localizacao: form.localizacao,
         descricaoTicketUsuario: form.descricaoTicketUsuario,
-        imagem: form.imagem // string base64 ou URL dependendo do backend
+        imagem: form.imagem
       }
 
       const res = await fetch(
@@ -210,7 +233,7 @@ export default function ReportEdit() {
             {form.imagem && (
               <div className="mt-4 flex justify-center">
                 <img
-                  src={form.imagem}
+                  src={convertFirebaseUrl(form.imagem)}
                   alt="Pré-visualização"
                   className="rounded-xl shadow-md max-h-60 object-cover border transition hover:scale-105"
                 />

@@ -35,12 +35,21 @@ export default function AccountInfo() {
 
         const data = await response.json()
 
+        // Corrigido: pega avatar do backend
+        const avatarURL =
+          data.pessoa?.avatar && data.pessoa.avatar !== ""
+            ? data.pessoa.avatar
+            : "/user_maria.png"
+
         setForm({
           nome: data.pessoa?.nome || '',
           email: data.email || '',
           telefone: data.pessoa?.telefone || '',
-          avatar: '/user_maria.png'
+          avatar: avatarURL
         })
+
+        setPreview(avatarURL)
+
       } catch (error) {
         setMensagem('❌ Não foi possível carregar os dados.')
       } finally {
